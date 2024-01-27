@@ -1,79 +1,95 @@
-const prisma = require("../../prisma");
+const User = require("../../model/user.model");
 const { jwtKey } = require("../helper");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const generateAccessToken = (userId) => {
-  return jwt.sign({ userId }, jwtKey, {
-    expiresIn: "1h",
-  });
-};
-
-const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
-
+const createUser = async (req, res) => {
   try {
-    // Check if the email is already taken
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    const { name, email, password, image } = req.body;
+
+    const newUser = new User({
+      name,
+      email,
+      password,
+      image,
     });
 
-    if (existingUser) {
-      return res.status(400).json({ message: "Email is already taken" });
-    }
+    const savedUser = await newUser.save();
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        name,
-        password: hashedPassword,
-      },
-    });
-    res.status(201).json({ message: "User registered successfully", newUser });
+    res.status(201).json(savedUser);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
+const loginController = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign({ user }, jwtKey, { expiresIn: "1h" });
+
+    // Set the token as a cookie
+    res.cookie("token", token, { httpOnly: true, maxAge: 3600000 }); // maxAge is in milliseconds (1 hour in this example)
+
+    res.status(200).json({ message: "Login successful", user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const updateUser = async (req, res) => {
+  try {
+    const { userId } = req.params; // Assuming userId is passed as a route parameter
+    const { name, email, password, image } = req.body;
+
+    // Check if the user exists in the database
+    const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(404).json({ error: "User not found" });
     }
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
+    // Update user information
+    user.name = name || user.name;
+    user.email = email || user.email;
 
-    if (!passwordMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (password) {
+      // If a new password is provided, hash and update it
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      user.password = hashedPassword;
     }
 
-    const token = generateAccessToken(user.id);
+    user.image = image || user.image;
 
-    res.cookie("token", token, { httpOnly: true });
+    // Save the updated user
+    const updatedUser = await user.save();
 
-    res
-      .status(200)
-      .json({
-        message: "Login successful",
-        user: { id: user.id, name: user.name, email: user.email },
-      });
+    res.status(200).json(updatedUser);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-const logoutUser = (req, res) => {
-  res.clearCookie("token");
+const logoutController = (req, res) => {
+  try {
+    res.clearCookie("token"); // Clear the 'token' cookie
 
-  res.status(200).json({ message: "Logout successful" });
+    res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 };
 
-module.exports = { registerUser, loginUser, logoutUser };
+module.exports = { createUser, loginController, updateUser, logoutController };

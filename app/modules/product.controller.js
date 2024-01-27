@@ -1,136 +1,127 @@
-const prisma = require("../../prisma");
+const Shoe = require("../../model/product.model");
 
-const createShoe = async (req, res) => {
-  const {
-    name,
-    price,
-    image,
-    quantity,
-    brand,
-    model,
-    style,
-    size,
-    color,
-    material,
-    closureType,
-  } = req.body;
-
+const createProduct = async (req, res) => {
   try {
-    const newShoe = await prisma.shoe.create({
-      data: {
-        name,
-        price,
-        image,
-        quantity,
-        brand,
-        model,
-        style,
-        size,
-        color,
-        material,
-        closureType,
-      },
+    const {
+      name,
+      price,
+      quantity,
+      image,
+      brand,
+      description,
+      model,
+      style,
+      size,
+      color,
+      material,
+      closureType,
+    } = req.body;
+
+    // Create a new shoe instance
+    const newShoe = new Shoe({
+      name,
+      price,
+      quantity,
+      image,
+      brand,
+      description,
+      model,
+      style,
+      size,
+      color,
+      material,
+      closureType,
     });
 
-    res
-      .status(201)
-      .json({ message: "Shoe created successfully", shoe: newShoe });
+    // Save the shoe to the database
+    const savedShoe = await newShoe.save();
+
+    res.status(201).json(savedShoe);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-const getAllShoes = async (req, res) => {
+const getAllProducts = async (req, res) => {
   try {
-    const allShoes = await prisma.shoe.findMany();
-    res.status(200).json({ shoes: allShoes });
+    // Fetch all products from the database
+    const products = await Shoe.find();
+
+    res.status(200).json(products);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
-const updateShoe = async (req, res) => {
-  const { id } = req.params;
-  const {
-    name,
-    price,
-    image,
-    quantity,
-    brand,
-    model,
-    style,
-    size,
-    color,
-    material,
-    closureType,
-  } = req.body;
 
+const getProductById = async (req, res) => {
   try {
-    // Convert the id parameter to an integer
-    const shoeId = parseInt(id, 10);
+    const { productId } = req.params; // Assuming productId is passed as a route parameter
 
-    // Check if the shoe with the given ID exists
-    const existingShoe = await prisma.shoe.findUnique({
-      where: { id: shoeId },
-    });
+    // Fetch the product from the database by ID
+    const product = await Shoe.findById(productId);
 
-    if (!existingShoe) {
-      return res.status(404).json({ message: "Shoe not found" });
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
     }
 
-    const updatedShoe = await prisma.shoe.update({
-      where: { id: shoeId },
-      data: {
-        name,
-        price,
-        image,
-        quantity,
-        brand,
-        model,
-        style,
-        size,
-        color,
-        material,
-        closureType,
-      },
-    });
-
-    res
-      .status(200)
-      .json({ message: "Shoe updated successfully", shoe: updatedShoe });
+    res.status(200).json(product);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-const deleteShoe = async (req, res) => {
-  const { id } = req.params;
-
+const updateProduct = async (req, res) => {
   try {
-    // Convert the id parameter to an integer
-    const shoeId = parseInt(id, 10);
+    const { productId } = req.params; // Assuming productId is passed as a route parameter
+    const updateData = req.body;
 
-    // Check if the shoe with the given ID exists
-    const existingShoe = await prisma.shoe.findUnique({
-      where: { id: shoeId },
-    });
+    // Check if the product exists in the database
+    const product = await Shoe.findById(productId);
 
-    if (!existingShoe) {
-      return res.status(404).json({ message: "Shoe not found" });
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
     }
 
-    // Delete the shoe
-    await prisma.shoe.delete({
-      where: { id: shoeId },
-    });
+    // Update product information
+    for (const [key, value] of Object.entries(updateData)) {
+      product[key] = value;
+    }
 
-    res.status(200).json({ message: "Shoe deleted successfully" });
+    // Save the updated product
+    const updatedProduct = await product.save();
+
+    res.status(200).json(updatedProduct);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-module.exports = { createShoe, updateShoe, getAllShoes, deleteShoe };
+const deleteProduct = async (req, res) => {
+  try {
+    const { productId } = req.params; // Assuming productId is passed as a route parameter
+
+    // Use findByIdAndDelete to remove the product directly from the database
+    const deletedProduct = await Shoe.findByIdAndDelete(productId);
+
+    if (!deletedProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.status(200).json({ message: "Product deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+module.exports = {
+  createProduct,
+  getAllProducts,
+  getProductById,
+  updateProduct,
+  deleteProduct,
+};

@@ -1,17 +1,20 @@
 const express = require("express");
-const {
-  registerUser,
-  loginUser,
-  logoutUser,
-} = require("../modules/user.controller");
+
 const { isLoggedOut, isLoggedIn } = require("../middleware/auth-middleware");
+const {
+  createUser,
+  loginController,
+  updateUser,
+  logoutController,
+} = require("../modules/user.controller");
 
 const router = express.Router();
 // router.get("/test", (req, res) => {
 //   res.send("Working");
 // });
-router.post("/create", isLoggedOut, registerUser);
-router.post("/login", isLoggedOut, loginUser);
-router.get("/log-out", isLoggedIn, logoutUser);
+router.post("/create", isLoggedOut, createUser);
+router.post("/login", isLoggedOut, loginController);
+router.put("/update/:userId", updateUser);
+router.get("/log-out", isLoggedIn, logoutController);
 
 module.exports = router;
