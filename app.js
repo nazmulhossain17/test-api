@@ -10,10 +10,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: "https://shoe-inventory-5714f.web.app/",
+    origin: "https://shoe-inventory-5714f.web.app",
     credentials: true,
   })
 );
+
+app.options("*", cors()); // Handle preflight requests
 app.use("/api/v1", userRouter);
 app.use("/api/v2", productRouter);
 
