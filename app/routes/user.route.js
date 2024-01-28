@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { isLoggedOut, isLoggedIn } = require("../middleware/auth-middleware");
+const { isLoggedOut } = require("../middleware/auth-middleware");
 const {
   createUser,
   loginController,
@@ -15,6 +15,6 @@ const router = express.Router();
 router.post("/create", isLoggedOut, createUser);
 router.post("/login", isLoggedOut, loginController);
 router.put("/update/:userId", updateUser);
-router.get("/log-out", isLoggedIn, logoutController);
+router.get("/log-out", logoutController);
 
 module.exports = router;
