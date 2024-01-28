@@ -75,30 +75,26 @@ const getProductById = async (req, res) => {
 
 const updateProduct = async (req, res) => {
   try {
-    const { productId } = req.params; // Assuming productId is passed as a route parameter
+    const { productId } = req.params;
     const updateData = req.body;
 
-    // Check if the product exists in the database
-    const product = await Shoe.findById(productId);
+    const product = await Shoe.findByIdAndUpdate(
+      productId,
+      { $set: updateData },
+      { new: true }
+    );
 
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    // Update product information
-    for (const [key, value] of Object.entries(updateData)) {
-      product[key] = value;
-    }
-
-    // Save the updated product
-    const updatedProduct = await product.save();
-
-    res.status(200).json(updatedProduct);
+    res.status(200).json(product);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 const deleteProduct = async (req, res) => {
   try {
