@@ -8,7 +8,15 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors("*"));
+// app.use(cors("https://nazmul-inventory-system.web.app"));
+app.use(
+  cors({
+    origin: "https://nazmul-inventory-system.web.app",
+    credentials: true,
+  })
+);
+
+app.options("*", cors());
 app.use("/api/v1", userRouter);
 app.use("/api/v2", productRouter);
 
